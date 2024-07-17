@@ -13,7 +13,6 @@ import androidx.appcompat.app.AppCompatActivity
 import com.kizitonwose.calendar.core.CalendarDay
 import com.kizitonwose.calendar.view.CalendarView
 import com.kizitonwose.calendar.view.ViewContainer
-import com.lutech.calendarv2.R
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
@@ -78,15 +77,14 @@ class MainActivity : AppCompatActivity() {
                 val startOfMonth = currentDate.withDayOfMonth(1)
 
                 // Calculate the visible range
-                val endOfMonth = startOfWeek.minusDays(1)
-                val startMonth = startOfMonth
+                val endOfMonth = YearMonth.from(startOfWeek).atEndOfMonth()
 
                 calendarView.setup(
-                    YearMonth.from(startMonth),
+                    YearMonth.from(startOfWeek),
                     YearMonth.from(endOfMonth),
                     WeekFields.of(Locale.getDefault()).firstDayOfWeek
                 )
-                calendarView.scrollToMonth(YearMonth.from(startMonth))
+                calendarView.scrollToMonth(YearMonth.from(startOfWeek))
 
                 calendarView.dayBinder =
                     object : com.kizitonwose.calendar.view.MonthDayBinder<DayViewContainer> {
@@ -95,7 +93,7 @@ class MainActivity : AppCompatActivity() {
                         override fun bind(container: DayViewContainer, day: CalendarDay) {
                             val isToday = day.date == LocalDate.now()
 
-                            if (day.date.isBefore(startMonth) || day.date.isAfter(endOfMonth)) {
+                            if (day.date.isBefore(startOfWeek)) {
                                 container.textView.visibility = View.GONE
                             } else {
                                 container.textView.visibility = View.VISIBLE
