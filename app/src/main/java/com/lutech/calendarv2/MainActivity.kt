@@ -1,16 +1,19 @@
 package com.lutech.calendarv2
 
-import android.annotation.SuppressLint
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import com.kizitonwose.calendar.core.CalendarDay
 import com.kizitonwose.calendar.view.CalendarView
 import com.kizitonwose.calendar.view.ViewContainer
+import com.lutech.calendarv2.R
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
@@ -23,8 +26,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var monthTitle: TextView
     private var isShowingWeek = false
 
-
-    @SuppressLint("NewApi")
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -41,15 +43,12 @@ class MainActivity : AppCompatActivity() {
         calendarView.setup(firstMonth, lastMonth, firstDayOfWeek)
         calendarView.scrollToMonth(currentMonth)
 
-        // Update the month title
         updateMonthTitle(currentMonth)
 
-        // Day View Container
         class DayViewContainer(view: View) : ViewContainer(view) {
             val textView: TextView = view.findViewById(R.id.calendarDayText)
         }
 
-        // Bind data to day views
         calendarView.dayBinder =
             object : com.kizitonwose.calendar.view.MonthDayBinder<DayViewContainer> {
                 override fun create(view: View) = DayViewContainer(view)
@@ -59,14 +58,11 @@ class MainActivity : AppCompatActivity() {
                     val isToday = day.date == currentDate
 
                     container.textView.text = day.date.dayOfMonth.toString()
-
-                    // Apply the rounded background programmatically
                     val backgroundDrawable = createRoundedBackground(
                         if (isToday) Color.parseColor("#149ffe") else Color.TRANSPARENT
                     )
                     container.textView.background = backgroundDrawable
 
-                    // Set text color based on the condition
                     container.textView.setTextColor(
                         if (isToday) Color.WHITE else Color.BLACK
                     )
@@ -77,61 +73,61 @@ class MainActivity : AppCompatActivity() {
         toggleButton.setOnClickListener {
             isShowingWeek = !isShowingWeek
             if (isShowingWeek) {
-                // Show only the current week and collapse the calendar
                 val currentDate = LocalDate.now()
-                val firstDayOfWeek = WeekFields.of(Locale.getDefault()).firstDayOfWeek
-                val startOfWeek = currentDate.with(firstDayOfWeek)
-                val endOfWeek = startOfWeek.plusDays(6)
+                val startOfWeek = currentDate.with(WeekFields.of(Locale.getDefault()).firstDayOfWeek)
+                val startOfMonth = currentDate.withDayOfMonth(1)
 
+                // Calculate the visible range
+                val endOfMonth = startOfWeek.minusDays(1)
+                val startMonth = startOfMonth
 
-                // Update calendar to show only the current week
                 calendarView.setup(
-                    YearMonth.from(startOfWeek),
-                    YearMonth.from(startOfWeek),
-                    firstDayOfWeek
+                    YearMonth.from(startMonth),
+                    YearMonth.from(endOfMonth),
+                    WeekFields.of(Locale.getDefault()).firstDayOfWeek
                 )
-                calendarView.scrollToDate(startOfWeek)
+                calendarView.scrollToMonth(YearMonth.from(startMonth))
 
-                // Set day visibility to show only the current week
                 calendarView.dayBinder =
                     object : com.kizitonwose.calendar.view.MonthDayBinder<DayViewContainer> {
                         override fun create(view: View) = DayViewContainer(view)
+
                         override fun bind(container: DayViewContainer, day: CalendarDay) {
-                            val currentDate = LocalDate.now()
-                            val isToday = day.date == currentDate
-                            if (day.date.isAfter(startOfWeek.minusDays(1)) && day.date.isBefore(
-                                    endOfWeek.plusDays(1)
-                                )
-                            ) {
+                            val isToday = day.date == LocalDate.now()
+
+                            if (day.date.isBefore(startMonth) || day.date.isAfter(endOfMonth)) {
+                                container.textView.visibility = View.GONE
+                            } else {
                                 container.textView.visibility = View.VISIBLE
                                 container.textView.text = day.date.dayOfMonth.toString()
-                                container.textView.setBackgroundColor(
+                                val backgroundDrawable = createRoundedBackground(
                                     if (isToday) Color.parseColor("#149ffe") else Color.TRANSPARENT
                                 )
+                                container.textView.background = backgroundDrawable
+
                                 container.textView.setTextColor(
                                     if (isToday) Color.WHITE else Color.BLACK
                                 )
-                            } else {
-                                container.textView.visibility = View.GONE
                             }
                         }
                     }
             } else {
-                // Show the full month
+                // Restore the full month view
                 calendarView.setup(firstMonth, lastMonth, firstDayOfWeek)
                 calendarView.scrollToMonth(YearMonth.now())
 
-                // Restore the full calendar view
                 calendarView.dayBinder =
                     object : com.kizitonwose.calendar.view.MonthDayBinder<DayViewContainer> {
                         override fun create(view: View) = DayViewContainer(view)
+
                         override fun bind(container: DayViewContainer, day: CalendarDay) {
-                            val currentDate = LocalDate.now()
-                            val isToday = day.date == currentDate
+                            val isToday = day.date == LocalDate.now()
                             container.textView.text = day.date.dayOfMonth.toString()
-                            container.textView.setBackgroundColor(
+                            val backgroundDrawable = createRoundedBackground(
                                 if (isToday) Color.parseColor("#149ffe") else Color.TRANSPARENT
                             )
+                            container.textView.background = backgroundDrawable
+
                             container.textView.setTextColor(
                                 if (isToday) Color.WHITE else Color.BLACK
                             )
@@ -146,18 +142,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    @SuppressLint("NewApi")
+    private fun createRoundedBackground(color: Int): GradientDrawable {
+        return GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = 12f
+            setColor(color)
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun updateMonthTitle(yearMonth: YearMonth) {
         val month = yearMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
         val year = yearMonth.year
         monthTitle.text = "$month/$year"
-    }
-
-    private fun createRoundedBackground(color: Int): GradientDrawable {
-        return GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = 30f
-            setColor(color)
-        }
     }
 }
